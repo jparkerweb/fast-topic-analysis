@@ -1,0 +1,30 @@
+Here are the prompts I used to generate the example training data that ships with this project.
+
+
+-------------------------------------
+-- Training Data Generation Prompt --
+-------------------------------------
+Generate a ton of training data for me. It should be in `jsonl` format, like this example:
+
+```jsonl
+{"label": "Disney", "text": "The Lion King's soundtrack is simply unforgettable."}
+{"label": "Disney", "text": "I just watched the new live-action remake of Mulan."}
+{"label": "Disney", "text": "Disneyland's churros are the best theme park snack!"}
+{"label": "Llamas", "text": "Llamas are so photogenic with their quirky expressions."}
+{"label": "Llamas", "text": "There’s a llama-themed cafe that opened nearby."}
+{"label": "Cookies", "text": "Chocolate-dipped cookies make for a fancy dessert."}
+{"label": "Cookies", "text": "I bought a cookie jar shaped like a cat!"}
+```
+
+We will be covering a few different topics ("Disney", "Llamas", "Cookies").
+This means I want lots and lots (as much as you can generate) of entries in jsonl format. The label for this data should be either "Disney", "Llamas", "Cookies" (go through each one and generate related text). Generate as much data as you can.
+
+
+
+
+------------------------------------
+-- Test Message Generation Prompt --
+------------------------------------
+Generate a bunch of emails (use fake names, etc). I just need the email body (not the to, from, subject, etc.).
+
+Each email should include text that is related to one or more of these topics.  Keep it as random as possible.  The length of each message should be pretty long to average (based on your knowledge of emails).
