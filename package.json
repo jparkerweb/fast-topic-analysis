@@ -1,14 +1,39 @@
 {
   "name": "filter-weights",
   "version": "1.0.0",
-  "description": "",
+  "description": "Semantically create chunks from large texts. Useful for workflows involving large language models (LLMs).",
+  "homepage": "https://www.equilllabs.com/projects/fast-topic-analysis",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jparkerweb/fast-topic-analysis.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jparkerweb/fast-topic-analysis/issues",
+    "email": "equilllabs@gmail.com"
+  },
   "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "nlp",
+    "embeddings",
+    "text-analysis",
+    "machine-learning",
+    "topic-detection",
+    "semantic-analysis",
+    "text-classification",
+    "natural-language-processing",
+    "huggingface",
+    "transformers",
+    "onnx",
+    "text-similarity",
+    "document-classification",
+    "content-filtering",
+    "text-processing"
+  ],
+  "author": "jparkerweb@gmail.com",
   "license": "ISC",
   "dependencies": {
     "@huggingface/transformers": "^3.1.2",
