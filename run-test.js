@@ -3,7 +3,7 @@
 // -------------
 import { generateEmbeddings } from "./modules/embedding.js";
 import { cosineSimilarity } from "./modules/similarity.js";
-import sentencize from '@stdlib/nlp-sentencize';
+import { parseSentences } from 'sentence-parse';
 import fs from 'fs';
 import readline from 'readline';
 import chalk from 'chalk';
@@ -48,7 +48,7 @@ let totalSentences = 0;
 async function testSimilarity(testMessage) {
     console.log(chalk.blue('\n-----------------------------------------------------\n'));
 
-    const sentences = sentencize(testMessage);
+    const sentences = await parseSentences(testMessage);
     totalSentences += sentences.length;
     let sentencesWithEmbeddings = await generateEmbeddings(sentences, true);
 

@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.0.2] - 2024-12-18
+### 📦 Updated
+- Changed sentence parsing library to `sentence-parse`
+
 ## [1.0.1] - 2024-12-15
 ### 📦 Updated
 - Updated TransformersJS to 3.2.0
