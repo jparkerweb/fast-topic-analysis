@@ -1,5 +1,9 @@
-This is your new *vault*.
+---
+banner: [[tags.png]]
+content-start: 300
+---
 
-Make a note of something, [[create a link]], or try [the Importer](https://help.obsidian.md/Plugins/Importer)!
+# 🏷️ Fast Topic Analysis
 
-When you're ready, delete this note and make the vault your own.
+- 🐙 [GitHub](https://github.com/jparkerweb/fast-topic-analysis)
+- 📝 [Release Notes Generator](https://jparkerweb.github.io/release-notes/)

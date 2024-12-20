@@ -13,26 +13,15 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "v1.0.0 - 🚀 Initial Release.md",
+                "file": "Welcome.md",
                 "mode": "preview",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "v1.0.0 - 🚀 Initial Release"
-            }
-          },
-          {
-            "id": "94d7e9bec869e5a3",
-            "type": "leaf",
-            "state": {
-              "type": "custom-frames-📄-release-notes",
-              "state": {},
-              "icon": "lucide-notebook-pen",
-              "title": "📄 release notes"
+              "title": "Welcome"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -170,6 +159,16 @@
             "id": "4220a490308f7bbc",
             "type": "leaf",
             "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
+            }
+          },
+          {
+            "id": "c5ac0b0e9e76c34a",
+            "type": "leaf",
+            "state": {
               "type": "Saved Queries View",
               "state": {},
               "icon": "feather-mouse-pointer",
@@ -177,7 +176,7 @@
             }
           }
         ],
-        "currentTab": 5
+        "currentTab": 6
       }
     ],
     "direction": "horizontal",
@@ -197,12 +196,12 @@
       "callout-manager:Insert Callout": false
     }
   },
-  "active": "94d7e9bec869e5a3",
+  "active": "9b15776ca1b4bd01",
   "lastOpenFiles": [
+    "Welcome.md",
     "v1.0.0 - 🚀 Initial Release.md",
     "pixel-banner-images/tags.png",
     "pixel-banner-images",
-    "Welcome.md",
     "releases"
   ]
 }
