@@ -1,6 +1,6 @@
 # 🏷️ Fast Topic Analysis
 
-A tool for analyzing text against predefined topics using embeddings and cosine similarity.
+A tool for analyzing text against predefined topics using average weight embeddings and cosine similarity.
 
 ![Fast Topic Analysis](./img/buckets.jpg)
 
