@@ -97,3 +97,6 @@ The training data is a JSONL file that contains the training data. Each line is 
 
 The training data is used to generate the topic embeddings. The more training data you have, the better the topic embeddings will be.
 The labels to be used when generating the topic embeddings are defined in `labels-config.js`.
+
+## 📺 Video Demo
+[![video](https://img.youtube.com/vi/SsPKA2Sy1pE/0.jpg)](https://www.youtube.com/watch?v=SsPKA2Sy1pE)
