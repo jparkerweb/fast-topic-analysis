@@ -4,6 +4,14 @@ A tool for analyzing text against predefined topics using average weight embeddi
 
 ![Fast Topic Analysis](./img/buckets.jpg)
 
+#### Maintained by
+<a href="https://www.equilllabs.com">
+  <img src="https://raw.githubusercontent.com/jparkerweb/eQuill-Labs/refs/heads/main/src/static/images/logo-text-outline.png" alt="eQuill Labs" height="30">
+</a>
+
+<br>
+<br>
+
 ## Overview
 
 This project consists of two main components:
