@@ -4,39 +4,24 @@
     "type": "split",
     "children": [
       {
-        "id": "81f2827b5e264751",
+        "id": "4f4f97b0bfe7e1e8",
         "type": "tabs",
         "children": [
           {
-            "id": "9b15776ca1b4bd01",
+            "id": "c93447ab1eaf2632",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "releases/v1.1.0  - 🎫 Task Instruction Prefixes.md",
-                "mode": "source",
-                "source": true
+                "file": "Fast Topic Analysis.md",
+                "mode": "preview",
+                "source": false
               },
               "icon": "lucide-file",
-              "title": "v1.1.0  - 🎫 Task Instruction Prefixes"
-            }
-          },
-          {
-            "id": "0d62005fbbc8832e",
-            "type": "leaf",
-            "state": {
-              "type": "webviewer",
-              "state": {
-                "url": "https://jparkerweb.github.io/release-notes/",
-                "title": "Release Notes Generator",
-                "mode": "webview"
-              },
-              "icon": "globe-2",
-              "title": "Release Notes Generator"
+              "title": "Fast Topic Analysis"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -221,9 +206,11 @@
       "callout-manager:Insert Callout": false
     }
   },
-  "active": "0d62005fbbc8832e",
+  "active": "c93447ab1eaf2632",
   "lastOpenFiles": [
     "releases/v1.1.0  - 🎫 Task Instruction Prefixes.md",
+    "v1.0.0 - 🚀 Initial Release.md",
+    "Welcome.md",
     "Fast Topic Analysis.md",
     "pixel-banner-images/book-search.png",
     "releases/v1.0.0 - 🚀 Initial Release.md",

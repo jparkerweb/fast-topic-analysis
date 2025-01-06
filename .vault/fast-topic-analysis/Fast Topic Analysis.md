@@ -1,5 +1,5 @@
 ---
-banner: [[tags.png]]
+banner: "[[tags.png]]"
 content-start: 300
 ---
 
