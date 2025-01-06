@@ -13,15 +13,30 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Welcome.md",
-                "mode": "preview",
+                "file": "releases/v1.1.0  - 🎫 Task Instruction Prefixes.md",
+                "mode": "source",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "Welcome"
+              "title": "v1.1.0  - 🎫 Task Instruction Prefixes"
+            }
+          },
+          {
+            "id": "0d62005fbbc8832e",
+            "type": "leaf",
+            "state": {
+              "type": "webviewer",
+              "state": {
+                "url": "https://jparkerweb.github.io/release-notes/",
+                "title": "Release Notes Generator",
+                "mode": "webview"
+              },
+              "icon": "globe-2",
+              "title": "Release Notes Generator"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -171,12 +186,22 @@
             "state": {
               "type": "Saved Queries View",
               "state": {},
+              "icon": "lucide-file",
+              "title": "Plugin no longer active"
+            }
+          },
+          {
+            "id": "fd5fb4caff3e63df",
+            "type": "leaf",
+            "state": {
+              "type": "Saved Queries View",
+              "state": {},
               "icon": "feather-mouse-pointer",
               "title": "Saved Queries"
             }
           }
         ],
-        "currentTab": 6
+        "currentTab": 7
       }
     ],
     "direction": "horizontal",
@@ -196,10 +221,12 @@
       "callout-manager:Insert Callout": false
     }
   },
-  "active": "9b15776ca1b4bd01",
+  "active": "0d62005fbbc8832e",
   "lastOpenFiles": [
-    "Welcome.md",
-    "v1.0.0 - 🚀 Initial Release.md",
+    "releases/v1.1.0  - 🎫 Task Instruction Prefixes.md",
+    "Fast Topic Analysis.md",
+    "pixel-banner-images/book-search.png",
+    "releases/v1.0.0 - 🚀 Initial Release.md",
     "pixel-banner-images/tags.png",
     "pixel-banner-images",
     "releases"

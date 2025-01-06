@@ -1,11 +1,11 @@
 // -------------
 // -- imports --
 // -------------
-import { combineEmbeddings } from "./modules/embedding.js";
+import { combineTopicEmbeddings } from "./modules/embedding.js";
 import { labels } from "./labels-config.js";
 import fs from 'fs';
 
-console.log('\n\n\n\n\n\n\n\n\n\n');
+console.log('\n\n\n\n');
 
 // ------------------------------------------
 // -- Clean the topic_embeddings directory --
@@ -56,7 +56,7 @@ async function generateTopicEmbedding(label) {
 
     let topicEmbedding;
     try {
-        topicEmbedding = await combineEmbeddings(existingEmbedding, existingCount, newPhrases);
+        topicEmbedding = await combineTopicEmbeddings(existingEmbedding, existingCount, newPhrases);
         const dataObject = {
             topic: topicName,
             threshold: threshold,

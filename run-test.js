@@ -1,7 +1,7 @@
 // -------------
 // -- imports --
 // -------------
-import { generateEmbeddings } from "./modules/embedding.js";
+import { prefixConfig, generateEmbeddings } from "./modules/embedding.js";
 import { cosineSimilarity } from "./modules/similarity.js";
 import { parseSentences } from 'sentence-parse';
 import fs from 'fs';
@@ -31,7 +31,12 @@ const topicEmbeddings = fs.readdirSync('data/topic_embeddings').map(file => {
 });
 
 // Load test message files
-const testMessageFiles = fs.readdirSync('test-messages');
+const testMessageFiles = fs.readdirSync('test-messages')
+    .sort((a, b) => {
+        const numA = parseInt(a.match(/\d+/)[0]);
+        const numB = parseInt(b.match(/\d+/)[0]);
+        return numA - numB;
+    });
 
 // Initialize sentence matches variable
 let sentenceMatches = [];
@@ -50,7 +55,11 @@ async function testSimilarity(testMessage) {
 
     const sentences = await parseSentences(testMessage);
     totalSentences += sentences.length;
-    let sentencesWithEmbeddings = await generateEmbeddings(sentences, true);
+    let sentencesWithEmbeddings = await generateEmbeddings(sentences, {
+        prefix: prefixConfig.queryPrefix,
+        returnPhrases: true,
+        logging: false,
+    });
 
     for (const { phrase, embedding } of sentencesWithEmbeddings) {
         if (config.verboseLogs) {
@@ -63,12 +72,17 @@ async function testSimilarity(testMessage) {
             const similarity = cosineSimilarity(embedding, topicEmbedding.embedding);
             
             if (similarity >= topicEmbedding.threshold) {
-                sentenceMatches.push({ topicName, phrase });
+                // clean phrase by remove prefixConfig.queryPrefix from phrase
+                const cleanedPhrase = (phrase.startsWith(prefixConfig.queryPrefix) && prefixConfig.queryPrefix !== '')
+                    ? phrase.slice(prefixConfig.queryPrefix.length)
+                    : phrase;
+
+                sentenceMatches.push({ topicName, cleanedPhrase });
 
                 if (config.verboseLogs) {
                     console.log(chalk.red(`Topic: ${topicName} ⇢ Similarity Score: ${similarity.toFixed(4)}`));
                 } else if(!config.verboseLogs && config.showMatches) {
-                    console.log(chalk.red(`Topic: ${topicName} ⇢ Similarity Score: ${similarity.toFixed(4)} ⇠ ${phrase}`));
+                    console.log(chalk.red(`Topic: ${topicName} ⇢ Similarity Score: ${similarity.toFixed(4)} ⇠ ${cleanedPhrase}`));
                 }
             } else if (config.verboseLogs) {
                 console.log(chalk.green(`Topic: ${topicName} ⇢ Similarity Score: ${similarity.toFixed(4)}`));
