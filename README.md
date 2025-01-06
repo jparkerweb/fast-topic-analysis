@@ -84,10 +84,36 @@ The analysis will show:
 
 ## Customizing
 
-- Change the `ONNX_EMBEDDING_MODEL` and `ONNX_EMBEDDING_MODEL_PRECISION` in `.env` to use a different embedding model and precision.
+- Change the model settings in `.env` to use different embedding models and configurations:
+  ```env
+  # Model and precision
+  ONNX_EMBEDDING_MODEL="Xenova/all-MiniLM-L12-v2"
+  ONNX_EMBEDDING_MODEL_PRECISION=fp32
+
+  # Available Models and their configurations:
+  # | Model                                        | Precision      | Size                   | Requires Prefix | Data Prefix     | Search Prefix |
+  # | -------------------------------------------- | -------------- | ---------------------- | --------------- | --------------- | ------------- |
+  # | Xenova/all-MiniLM-L6-v2                      | fp32, fp16, q8 | 90 MB, 45 MB, 23 MB    | false           | null            | null          |
+  # | Xenova/all-MiniLM-L12-v2                     | fp32, fp16, q8 | 133 MB, 67 MB, 34 MB   | false           | null            | null          |
+  # | Xenova/paraphrase-multilingual-MiniLM-L12-v2 | fp32, fp16, q8 | 470 MB, 235 MB, 118 MB | false           | null            | null          |
+  # | nomic-ai/modernbert-embed-base               | fp32, fp16, q8 | 568 MB, 284 MB, 146 MB | true            | search_document | search_query  |
+  ```
 - Change the thresholds defined in `labels-config.js` per topic to change the similarity score that triggers a match.
 - Add more test messages to the `test-messages` directory to test against.
 - Add more training data to `data/training_data.jsonl` to improve the topic embeddings.
+
+### Task Instruction Prefixes
+
+Some models require specific prefixes to optimize their performance for different tasks. When a model has `Requires Prefix: true`, you must use the appropriate prefix:
+
+- `Data Prefix`: Used when generating embeddings from training data
+- `Search Prefix`: Used when generating embeddings for search/query text
+
+For example, `nomic-ai/modernbert-embed-base` requires:
+- `search_document` prefix for training data
+- `search_query` prefix for search queries
+
+Models with `Requires Prefix: false` will ignore any prefix settings.
 
 ### Training Data
 
