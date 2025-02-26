@@ -1,7 +1,7 @@
 {
   "name": "fast-topic-analysis",
-  "version": "1.1.0",
-  "description": "Semantically create chunks from large texts. Useful for workflows involving large language models (LLMs).",
+  "version": "1.2.0",
+  "description": "A tool for analyzing text against predefined topics using embedding clustering and cosine similarity. Identifies topic matches in text with high precision through multiple weighted average embeddings per topic.",
   "repository": {
     "type": "git",
     "url": "https://github.com/jparkerweb/fast-topic-analysis.git"
@@ -13,8 +13,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node run-test.js",
-    "test": "node run-test.js",
+    "start": "node run-demo.js",
+    "test": "node test/cluster-test.js",
     "generate": "node generate.js",
     "clean": "npx rimraf node_modules && npx rimraf package-lock.json && npm install"
   },
@@ -38,9 +38,9 @@
   "author": "jparkerweb@gmail.com",
   "license": "ISC",
   "dependencies": {
-    "@huggingface/transformers": "^3.2.4",
+    "@huggingface/transformers": "^3.3.3",
     "chalk": "^5.4.1",
     "dotenv": "^16.4.7",
-    "sentence-parse": "1.0.3"
+    "sentence-parse": "~1.3.1"
   }
 }

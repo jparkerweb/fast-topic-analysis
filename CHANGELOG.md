@@ -1,6 +1,22 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+
+## [1.2.0] - 2025-02-25
+### ✨ Added
+- Implemented embedding clustering to create multiple embeddings per topic
+- Added cohesion score calculation for evaluating cluster quality
+- Created configuration presets (high-precision, balanced, performance, legacy)
+- Added command-line arguments for customizing clustering behavior
+- Implemented unit tests for clustering algorithm
+- Updated README with comprehensive clustering explanation
+
+### 📦 Updated
+- Renamed run-test.js to run-demo.js for clarity
+- Improved file organization with dedicated test directory
+- Enhanced output to display cluster information and cohesion scores
+- Updated package.json description to better reflect project functionality
+
 ## [1.1.0] - 2025-01-06
 ### ✨ Added
 - Support for `task instruction prefixes` (defined in `.env` file)
