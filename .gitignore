@@ -3,3 +3,7 @@ models/
 run-demo-config.json
 specs/
 specs--completed/
+data/topic_embeddings/
+data/incremental-manifest.json
+data/edge-test-backup-*/
+data/integration-test-backup-*/

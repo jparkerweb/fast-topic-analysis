@@ -52,7 +52,7 @@ function averageEmbeddings(embeddings) {
 // --------------------------------------------------------------
 // -- Function to calculate the weighted average of embeddings --
 // --------------------------------------------------------------
-function weightedAverage(existingEmbedding, existingCount, newEmbeddings) {
+export function weightedAverage(existingEmbedding, existingCount, newEmbeddings) {
   const totalMessages = existingCount + newEmbeddings.length;
   const weightedEmbedding = existingEmbedding.map((value, index) => {
     const newValue = newEmbeddings.reduce((acc, embedding) => acc + embedding[index], 0);

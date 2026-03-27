@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.3.0] - 2026-03-27
+### Added
+- Incremental embedding updates via `node generate.js --incremental`
+- Manifest module (`modules/manifest.js`) for tracking processing state and data integrity
+- SHA-256 content hashing to detect modified training data
+- Model/precision mismatch detection between runs
+- Weighted average centroid updates without re-embedding existing data
+- Unit tests for weighted average math, manifest validation, and getNewLines
+- Integration test comparing full generation vs incremental generation
+- Edge case tests for missing manifest, model mismatch, and no new data scenarios
+
 ## [1.2.0] - 2025-02-25
 ### ✨ Added
 - Implemented embedding clustering to create multiple embeddings per topic

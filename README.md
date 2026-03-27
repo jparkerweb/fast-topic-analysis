@@ -89,12 +89,33 @@ Command-line options for `generate.js`:
 - `--similarity-threshold <num>`: Set similarity threshold for clustering (0-1)
 - `--min-cluster-size <num>`: Set minimum cluster size
 - `--max-clusters <num>`: Set maximum number of clusters per topic
+- `--incremental`: Update clusters incrementally (new JSONL entries only)
 - `--help`: Show help message
 
 For more options, run:
 ```bash
 node generate.js --help
 ```
+
+#### Incremental Updates
+
+After an initial full generation, you can incrementally update clusters when new training phrases are added:
+
+1. Append new phrases to `data/training_data.jsonl`
+2. Run incremental generation:
+
+```bash
+node generate.js --incremental
+```
+
+This will:
+- Validate the manifest (data integrity + model consistency)
+- Embed only the new phrases
+- Assign each new embedding to the nearest existing cluster
+- Update cluster centroids via weighted average math
+- Update the manifest for future incremental runs
+
+Incremental mode requires a prior full generation (which creates a manifest file). If training data has been edited (not just appended), or the model/precision has changed, a full regeneration is required.
 
 ### Running Analysis
 
@@ -142,15 +163,21 @@ The analysis will show:
 ```
 ├── data/
 │   ├── training_data.jsonl          # Training data
+│   ├── incremental-manifest.json    # Incremental processing state
 │   └── topic_embeddings/            # Generated embeddings
 ├── test-messages/                   # Test files
 ├── modules/
 │   ├── embedding.js                 # Embedding functions
 │   ├── similarity.js                # Similarity calculation
+│   ├── manifest.js                  # Incremental manifest operations
 │   └── clusterEmbeddings.js         # Clustering functionality
 ├── test/
 │   ├── cluster-test.js              # Unit tests for clustering
-│   └── demo-clustering.js           # clustering demo test
+│   ├── weighted-average-test.js     # Unit tests for weighted average math
+│   ├── manifest-test.js             # Unit tests for manifest module
+│   ├── incremental-integration-test.js  # Integration test for incremental gen
+│   ├── incremental-edge-cases-test.js   # Edge case tests for incremental mode
+│   └── demo-clustering.js           # Clustering demo test
 ├── generate.js                      # Embedding generator
 ├── run-demo.js                      # Test runner
 └── labels-config.js                 # Topic definitions

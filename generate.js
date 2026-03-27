@@ -1,10 +1,11 @@
 // -------------
 // -- imports --
 // -------------
-import { combineTopicEmbeddings, generateEmbeddings, prefixConfig } from "./modules/embedding.js";
+import { combineTopicEmbeddings, generateEmbeddings, prefixConfig, weightedAverage } from "./modules/embedding.js";
 import { clusterEmbeddings, updateClusteringConfig, clusteringConfig } from "./modules/clusterEmbeddings.js";
 import { cosineSimilarity } from "./modules/similarity.js";
 import { labels } from "./labels-config.js";
+import { loadManifest, validateManifest, getNewLines, updateManifest, createManifest } from './modules/manifest.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -18,6 +19,19 @@ if (Object.keys(args).length > 0) {
 }
 
 console.log('\n\n\n\n');
+
+// -------------------------------------------
+// -- Manifest path constant               --
+// -------------------------------------------
+const MANIFEST_PATH = 'data/incremental-manifest.json';
+
+// ----------------------------
+// -- Incremental mode check --
+// ----------------------------
+if (args.incremental) {
+  await incrementalGenerate();
+  process.exit(0);
+}
 
 // ------------------------------------------
 // -- Clean the topic_embeddings directory --
@@ -51,6 +65,109 @@ const allTrainPositivesArray = allTrainPositives.split('\n')
     })
     .filter(item => item !== null); // Remove null entries before processing
 
+
+// -------------------------------------------
+// -- Incremental generation function       --
+// -------------------------------------------
+
+async function incrementalGenerate() {
+  // Task 2.5: Load and validate manifest
+  const manifest = loadManifest(MANIFEST_PATH);
+  if (!manifest) {
+    console.log('No manifest found. Run full generation first: node generate.js');
+    process.exit(1);
+  }
+
+  const validation = validateManifest(manifest, 'data/training_data.jsonl');
+  if (!validation.valid) {
+    const messages = {
+      hash_mismatch: 'Training data has been modified. Run full generation: node generate.js',
+      model_mismatch: 'Embedding model changed. Run full generation: node generate.js',
+      precision_mismatch: 'Model precision changed. Run full generation: node generate.js'
+    };
+    console.log(messages[validation.reason]);
+    process.exit(1);
+  }
+
+  const newEntries = getNewLines('data/training_data.jsonl', manifest.lastProcessedLine);
+  if (newEntries.length === 0) {
+    console.log('No new training data found. Nothing to update.');
+    return;
+  }
+
+  // Task 2.6: Group new lines by topic and validate
+  const topicGroups = new Map();
+  for (const entry of newEntries) {
+    const topicLabel = entry.label.toLowerCase();
+    if (!topicGroups.has(topicLabel)) {
+      topicGroups.set(topicLabel, []);
+    }
+    topicGroups.get(topicLabel).push(entry);
+  }
+
+  const topicEmbeddingsDir = 'data/topic_embeddings';
+  for (const [topicLabel] of topicGroups) {
+    const clusterFiles = fs.readdirSync(topicEmbeddingsDir)
+      .filter(file => file.startsWith(`${topicLabel}-cluster-`) && file.endsWith('.json'));
+    if (clusterFiles.length === 0) {
+      console.log(`New topic '${topicLabel}' found with no existing clusters. Run full generation: node generate.js`);
+      process.exit(1);
+    }
+  }
+
+  // Task 2.7: Embed new phrases, assign to nearest cluster, update centroids
+  for (const [topicLabel, entries] of topicGroups) {
+    const phrases = entries.map(e => e.text);
+    const embeddings = await generateEmbeddings(phrases, {
+      prefix: prefixConfig.dataPrefix,
+      returnPhrases: false,
+      logging: false
+    });
+
+    // Load all cluster files for this topic
+    const clusterFiles = fs.readdirSync(topicEmbeddingsDir)
+      .filter(file => file.startsWith(`${topicLabel}-cluster-`) && file.endsWith('.json'));
+    const clusters = clusterFiles.map(file => ({
+      filename: file,
+      data: JSON.parse(fs.readFileSync(path.join(topicEmbeddingsDir, file), 'utf8'))
+    }));
+
+    // Assign each new embedding to nearest cluster and update centroid
+    for (const newEmbedding of embeddings) {
+      let bestIdx = 0;
+      let bestSim = -Infinity;
+      for (let i = 0; i < clusters.length; i++) {
+        const sim = cosineSimilarity(Array.from(newEmbedding), clusters[i].data.embedding);
+        if (sim > bestSim) {
+          bestSim = sim;
+          bestIdx = i;
+        }
+      }
+      clusters[bestIdx].data.embedding = weightedAverage(
+        clusters[bestIdx].data.embedding,
+        clusters[bestIdx].data.clusterSize,
+        [Array.from(newEmbedding)]
+      );
+      clusters[bestIdx].data.clusterSize += 1;
+    }
+
+    // Update totalPhrases on all clusters for this topic
+    for (const cluster of clusters) {
+      cluster.data.totalPhrases = cluster.data.totalPhrases + phrases.length;
+      fs.writeFileSync(
+        path.join(topicEmbeddingsDir, cluster.filename),
+        JSON.stringify(cluster.data, null, 2)
+      );
+    }
+
+    console.log(`Topic '${topicLabel}': updated ${clusterFiles.length} clusters with ${phrases.length} new phrases`);
+  }
+
+  // Task 2.8: Update manifest
+  const totalValidLines = manifest.lastProcessedLine + newEntries.length;
+  updateManifest(MANIFEST_PATH, totalValidLines, 'data/training_data.jsonl', process.env.ONNX_EMBEDDING_MODEL, process.env.ONNX_EMBEDDING_MODEL_PRECISION);
+  console.log('Incremental update complete. Manifest updated.');
+}
 
 // ---------------------------------------------------
 // -- Generate the topic average weighted embedding --
@@ -131,8 +248,12 @@ async function generateTopicEmbedding(label) {
 // -- Loop through labels and generate average weighted embeddings --
 // ------------------------------------------------------------------
 for (const label of labels) {
-    generateTopicEmbedding(label);
+    await generateTopicEmbedding(label);
 }
+
+// -- Create manifest after full generation --
+createManifest('data/training_data.jsonl', MANIFEST_PATH, process.env.ONNX_EMBEDDING_MODEL, process.env.ONNX_EMBEDDING_MODEL_PRECISION);
+console.log('Manifest created. Ready for incremental updates.');
 
 // ----------------------------------
 // -- Parse command line arguments --
@@ -154,6 +275,8 @@ function parseCommandLineArgs() {
       args.minClusterSize = argv[++i];
     } else if (arg === '--max-clusters') {
       args.maxClusters = argv[++i];
+    } else if (arg === '--incremental') {
+      args.incremental = true;
     } else if (arg === '--help') {
       printHelp();
       process.exit(0);
@@ -177,11 +300,13 @@ Options:
   --similarity-threshold <n>  Set similarity threshold for clustering (0-1)
   --min-cluster-size <n>      Set minimum cluster size
   --max-clusters <n>          Set maximum number of clusters per topic
+  --incremental              Update clusters incrementally (new JSONL entries only)
   --help                      Show this help message
 
 Examples:
   node generate.js --preset high-precision
   node generate.js --enable-clustering true --similarity-threshold 0.92
   node generate.js --max-clusters 3
+  node generate.js --incremental
 `);
 }

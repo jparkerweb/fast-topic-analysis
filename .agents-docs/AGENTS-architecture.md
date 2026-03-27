@@ -9,6 +9,15 @@
 3. Generates embeddings for each phrase using the ONNX model via `modules/embedding.js`
 4. Clusters embeddings per topic using `modules/clusterEmbeddings.js`
 5. Saves each cluster as a separate JSON file in `data/topic_embeddings/` (format: `<topic>-cluster-<N>-of-<M>.json`)
+6. Creates a manifest file (`data/incremental-manifest.json`) for subsequent incremental updates
+
+#### Incremental Mode (`generate.js --incremental`)
+1. Loads and validates the manifest (content hash + model/precision check)
+2. Detects new lines appended to `training_data.jsonl`
+3. Embeds only the new phrases
+4. Assigns each new embedding to the nearest existing cluster via cosine similarity
+5. Updates cluster centroids using weighted average math
+6. Updates the manifest
 
 ### Phase 2: Analysis (`run-demo.js`)
 1. Loads all pre-generated topic embedding JSON files
@@ -21,7 +30,8 @@
 
 | Module | Exports | Purpose |
 |--------|---------|---------|
-| `embedding.js` | `generateEmbeddings()`, `combineTopicEmbeddings()`, `prefixConfig` | Initializes the HuggingFace ONNX pipeline, generates embeddings with optional prefix support, handles weighted averaging |
+| `embedding.js` | `generateEmbeddings()`, `combineTopicEmbeddings()`, `weightedAverage()`, `prefixConfig` | Initializes the HuggingFace ONNX pipeline, generates embeddings with optional prefix support, handles weighted averaging |
+| `manifest.js` | `createManifest()`, `loadManifest()`, `validateManifest()`, `getNewLines()`, `updateManifest()` | Manifest CRUD for incremental mode: tracks processed line count, SHA-256 content hash, model/precision info |
 | `similarity.js` | `cosineSimilarity()` | Pure cosine similarity calculation between two vectors |
 | `clusterEmbeddings.js` | `clusterEmbeddings()`, `calculateAverageEmbedding()`, `updateClusteringConfig()`, `clusteringConfig` | Similarity-based clustering algorithm with configurable thresholds, min sizes, and max clusters. Handles small cluster redistribution |
 | `utils.js` | `toBoolean()` | String-to-boolean conversion for env var parsing |
@@ -33,6 +43,7 @@
 | `labels-config.js` | Defines topic labels and their similarity thresholds (e.g., `{ label: "disney", threshold: 0.4 }`) |
 | `.env` | Model selection, precision, prefix config, clustering params, cache paths |
 | `data/training_data.jsonl` | Training phrases with topic labels |
+| `data/incremental-manifest.json` | Incremental processing state (line count, content hash, model info) |
 
 ## Clustering Algorithm
 
