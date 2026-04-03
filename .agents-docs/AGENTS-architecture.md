@@ -6,8 +6,8 @@
 ### Phase 1: Embedding Generation (`generate.js`)
 1. Reads training data from `data/training_data.jsonl` (JSONL format: `{"text": "...", "label": "..."}`)
 2. Filters phrases by topic labels defined in `labels-config.js`
-3. Generates embeddings for each phrase using the ONNX model via `modules/embedding.js`
-4. Clusters embeddings per topic using `modules/clusterEmbeddings.js`
+3. Generates embeddings for each phrase using `modules/embedding.js` (thin wrapper around `embedding-utils`)
+4. Clusters embeddings per topic using `clusterEmbeddings()` from `embedding-utils`
 5. Saves each cluster as a separate JSON file in `data/topic_embeddings/` (format: `<topic>-cluster-<N>-of-<M>.json`)
 6. Creates a manifest file (`data/incremental-manifest.json`) for subsequent incremental updates
 
@@ -16,7 +16,7 @@
 2. Detects new lines appended to `training_data.jsonl`
 3. Embeds only the new phrases
 4. Assigns each new embedding to the nearest existing cluster via cosine similarity
-5. Updates cluster centroids using weighted average math
+5. Updates cluster centroids using `batchIncrementalAverage` from `embedding-utils`
 6. Updates the manifest
 
 ### Phase 2: Analysis (`run-demo.js`)
@@ -30,10 +30,8 @@
 
 | Module | Exports | Purpose |
 |--------|---------|---------|
-| `embedding.js` | `generateEmbeddings()`, `combineTopicEmbeddings()`, `weightedAverage()`, `prefixConfig` | Initializes the HuggingFace ONNX pipeline, generates embeddings with optional prefix support, handles weighted averaging |
+| `embedding.js` | `provider`, `prefixConfig`, `generateEmbeddings()`, `combineTopicEmbeddings()` | Thin wrapper around `embedding-utils`'s `createLocalProvider()`. Initializes the ONNX embedding provider, generates embeddings with optional prefix support |
 | `manifest.js` | `createManifest()`, `loadManifest()`, `validateManifest()`, `getNewLines()`, `updateManifest()` | Manifest CRUD for incremental mode: tracks processed line count, SHA-256 content hash, model/precision info |
-| `similarity.js` | `cosineSimilarity()` | Pure cosine similarity calculation between two vectors |
-| `clusterEmbeddings.js` | `clusterEmbeddings()`, `calculateAverageEmbedding()`, `updateClusteringConfig()`, `clusteringConfig` | Similarity-based clustering algorithm with configurable thresholds, min sizes, and max clusters. Handles small cluster redistribution |
 | `utils.js` | `toBoolean()` | String-to-boolean conversion for env var parsing |
 
 ## Key Configuration Files
@@ -47,14 +45,15 @@
 
 ## Clustering Algorithm
 
-The clustering in `clusterEmbeddings.js` works as follows:
+Clustering is provided by `embedding-utils`'s `clusterEmbeddings()` function. Config (threshold, minClusterSize, maxClusters) is passed as arguments rather than managed via global mutable state. Use `getPreset(name)` from `embedding-utils` for preset handling. The algorithm:
 1. Initialize first cluster with first embedding
 2. For each remaining embedding: assign to most similar cluster if above threshold, otherwise create new cluster (up to `maxClusters`)
 3. Clusters smaller than `minClusterSize` are redistributed to the nearest valid cluster, or combined into a single "miscellaneous" cluster if no valid clusters exist
-4. Final output: array of `{ embeddings, phrases, centroid }` objects
+4. Final output: array of `{ centroid, members, size, cohesion, labels }` objects
 
 ## Dependencies
 
+- `embedding-utils` -- Vector math, clustering, cosine similarity, embedding provider
 - `@huggingface/transformers` -- ONNX model loading and inference (local, no API)
 - `sentence-parse` -- Text-to-sentence splitting
 - `chalk` -- Terminal color output
