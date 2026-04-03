@@ -1,9 +1,11 @@
 // -------------
 // -- imports --
 // -------------
-import { combineTopicEmbeddings, generateEmbeddings, prefixConfig, weightedAverage } from "./modules/embedding.js";
-import { clusterEmbeddings, updateClusteringConfig, clusteringConfig } from "./modules/clusterEmbeddings.js";
-import { cosineSimilarity } from "./modules/similarity.js";
+import dotenv from 'dotenv';
+dotenv.config();
+import { combineTopicEmbeddings, generateEmbeddings, prefixConfig } from "./modules/embedding.js";
+import { clusterEmbeddings, getPreset, cosineSimilarity, centroidCohesion, batchIncrementalAverage, averageEmbeddings } from 'embedding-utils';
+import { toBoolean } from './modules/utils.js';
 import { labels } from "./labels-config.js";
 import { loadManifest, validateManifest, getNewLines, updateManifest, createManifest } from './modules/manifest.js';
 import fs from 'fs';
@@ -12,9 +14,31 @@ import path from 'path';
 // Parse command line arguments
 const args = parseCommandLineArgs();
 
-// Update clustering configuration if needed
+// Build clustering configuration from .env defaults
+let clusteringConfig = {
+  enabled: toBoolean(process.env.ENABLE_CLUSTERING) ?? true,
+  similarityThreshold: parseFloat(process.env.CLUSTERING_SIMILARITY_THRESHOLD) || 0.9,
+  minClusterSize: parseInt(process.env.CLUSTERING_MIN_CLUSTER_SIZE) || 5,
+  maxClusters: parseInt(process.env.CLUSTERING_MAX_CLUSTERS) || 5,
+};
+
+// Apply CLI overrides
+if (args.enableClustering !== undefined) clusteringConfig.enabled = toBoolean(args.enableClustering);
+if (args.similarityThreshold !== undefined) clusteringConfig.similarityThreshold = parseFloat(args.similarityThreshold);
+if (args.minClusterSize !== undefined) clusteringConfig.minClusterSize = parseInt(args.minClusterSize);
+if (args.maxClusters !== undefined) clusteringConfig.maxClusters = parseInt(args.maxClusters);
+
+// Apply preset if specified (overrides individual settings)
+if (args.preset) {
+  const preset = getPreset(args.preset);
+  if (preset) {
+    clusteringConfig = { ...clusteringConfig, ...preset };
+  } else {
+    console.warn(`Unknown preset: ${args.preset}. Using current configuration.`);
+  }
+}
+
 if (Object.keys(args).length > 0) {
-  updateClusteringConfig(args);
   console.log('Clustering configuration:', clusteringConfig);
 }
 
@@ -143,10 +167,10 @@ async function incrementalGenerate() {
           bestIdx = i;
         }
       }
-      clusters[bestIdx].data.embedding = weightedAverage(
+      clusters[bestIdx].data.embedding = batchIncrementalAverage(
         clusters[bestIdx].data.embedding,
-        clusters[bestIdx].data.clusterSize,
-        [Array.from(newEmbedding)]
+        [Array.from(newEmbedding)],
+        clusters[bestIdx].data.clusterSize
       );
       clusters[bestIdx].data.clusterSize += 1;
     }
@@ -197,22 +221,35 @@ async function generateTopicEmbedding(label) {
         const embeddings = phrasesWithEmbeddings.map(item => item.embedding);
         
         // Cluster the embeddings
-        const clusters = clusterEmbeddings(embeddings, phrasesWithEmbeddings);
-        
+        let clusters;
+        if (!clusteringConfig.enabled) {
+            // Disabled clustering: single cluster with all embeddings
+            clusters = [{
+                centroid: averageEmbeddings(embeddings),
+                members: embeddings,
+                labels: phrasesWithEmbeddings.map(item => item.phrase),
+                size: embeddings.length,
+                cohesion: 1.0,
+            }];
+        } else {
+            const clusterLabels = phrasesWithEmbeddings.map(item => item.phrase);
+            clusters = clusterEmbeddings(embeddings, {
+                similarityThreshold: clusteringConfig.similarityThreshold,
+                minClusterSize: clusteringConfig.minClusterSize,
+                maxClusters: clusteringConfig.maxClusters,
+            }, clusterLabels);
+        }
+
         console.log(`Topic "${topicName}" generated ${clusters.length} clusters`);
-        
+
         // Save each cluster as a separate embedding file
         for (let i = 0; i < clusters.length; i++) {
             const cluster = clusters[i];
-            const clusterSize = cluster.embeddings.length;
+            const clusterSize = cluster.size;
             const clusterCoverage = (clusterSize / newPhrases.length * 100).toFixed(2);
-            
-            // Calculate cohesion - average similarity between all embeddings and the centroid
-            let totalSimilarity = 0;
-            for (const embedding of cluster.embeddings) {
-                totalSimilarity += cosineSimilarity(embedding, cluster.centroid);
-            }
-            const cohesion = clusterSize > 0 ? totalSimilarity / clusterSize : 1.0;
+
+            // Use library-provided cohesion, or calculate via centroidCohesion
+            const cohesion = cluster.cohesion ?? centroidCohesion(cluster);
             
             const dataObject = {
                 topic: topicName,
