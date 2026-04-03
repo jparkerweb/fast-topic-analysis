@@ -2,6 +2,19 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.4.0] - 2026-04-03
+### Updated
+- Migrated from custom embedding/similarity/clustering modules to `embedding-utils` npm package
+- Replaced `modules/similarity.js` and `modules/clusterEmbeddings.js` with `embedding-utils` imports
+- Rewrote `modules/embedding.js` as thin wrapper around `embedding-utils`'s `createLocalProvider()`
+- Updated `@huggingface/transformers` from `^3.8.1` to `^4.0.1`
+- Updated project documentation (AGENTS.md, architecture docs)
+
+### Removed
+- `modules/similarity.js` (replaced by `cosineSimilarity` from `embedding-utils`)
+- `modules/clusterEmbeddings.js` (replaced by library clustering functions)
+- `test/demo-clustering.js` and `test/weighted-average-test.js` (obsolete standalone tests)
+
 ## [1.3.0] - 2026-03-27
 ### Added
 - Incremental embedding updates via `node generate.js --incremental`
