@@ -1,17 +1,12 @@
 // -------------
 // -- imports --
 // -------------
-import { clusterEmbeddings, calculateAverageEmbedding, updateClusteringConfig } from '../modules/clusterEmbeddings.js';
-import { cosineSimilarity } from '../modules/similarity.js';
+import { clusterEmbeddings, averageEmbeddings, cosineSimilarity, centroidCohesion, getPreset } from 'embedding-utils';
 import assert from 'assert';
 
-// Function to calculate cohesion for testing
+// Helper to calculate cohesion using library's centroidCohesion
 function calculateCohesion(embeddings, centroid) {
-  let totalSimilarity = 0;
-  for (const embedding of embeddings) {
-    totalSimilarity += cosineSimilarity(embedding, centroid);
-  }
-  return embeddings.length > 0 ? totalSimilarity / embeddings.length : 1.0;
+  return centroidCohesion({ members: embeddings, centroid });
 }
 
 // -----------------------------
@@ -33,23 +28,19 @@ function testBasicClustering() {
     [0.2, 0.8],  // Cluster 2
   ];
   
-  // Configure clustering for testing
-  updateClusteringConfig({
-    enableClustering: true,
+  // Run clustering with config passed directly
+  const clusters = clusterEmbeddings(embeddings, {
     similarityThreshold: 0.9,
     minClusterSize: 2,
-    maxClusters: 3
+    maxClusters: 3,
   });
-  
-  // Run clustering
-  const clusters = clusterEmbeddings(embeddings);
-  
+
   // Verify we have 2 clusters
   assert.strictEqual(clusters.length, 2, 'Should create 2 clusters');
-  
+
   // Verify cluster sizes
-  assert.strictEqual(clusters[0].embeddings.length, 3, 'First cluster should have 3 embeddings');
-  assert.strictEqual(clusters[1].embeddings.length, 3, 'Second cluster should have 3 embeddings');
+  assert.strictEqual(clusters[0].members.length, 3, 'First cluster should have 3 embeddings');
+  assert.strictEqual(clusters[1].members.length, 3, 'Second cluster should have 3 embeddings');
   
   // Verify centroids are calculated correctly
   const expectedCentroid1 = [0.9, 0.1];
@@ -84,29 +75,26 @@ function testClusteringWithPhrases() {
     { phrase: "This is phrase 4", embedding: embeddings[3] },
   ];
   
-  // Configure clustering for testing
-  updateClusteringConfig({
-    enableClustering: true,
+  // Run clustering with config and labels as separate args
+  const labels = phrasesWithEmbeddings.map(item => item.phrase);
+  const clusters = clusterEmbeddings(embeddings, {
     similarityThreshold: 0.9,
     minClusterSize: 1,
-    maxClusters: 2
-  });
-  
-  // Run clustering
-  const clusters = clusterEmbeddings(embeddings, phrasesWithEmbeddings);
-  
+    maxClusters: 2,
+  }, labels);
+
   // Verify we have 2 clusters
   assert.strictEqual(clusters.length, 2, 'Should create 2 clusters');
-  
-  // Verify phrases are assigned to correct clusters
-  assert.strictEqual(clusters[0].phrases.length, 2, 'First cluster should have 2 phrases');
-  assert.strictEqual(clusters[1].phrases.length, 2, 'Second cluster should have 2 phrases');
-  
-  // Check that phrases are correctly assigned
-  assert(clusters[0].phrases.includes("This is phrase 1"), 'Cluster 1 should contain phrase 1');
-  assert(clusters[0].phrases.includes("This is phrase 2"), 'Cluster 1 should contain phrase 2');
-  assert(clusters[1].phrases.includes("This is phrase 3"), 'Cluster 2 should contain phrase 3');
-  assert(clusters[1].phrases.includes("This is phrase 4"), 'Cluster 2 should contain phrase 4');
+
+  // Verify labels are assigned to correct clusters
+  assert.strictEqual(clusters[0].labels.length, 2, 'First cluster should have 2 labels');
+  assert.strictEqual(clusters[1].labels.length, 2, 'Second cluster should have 2 labels');
+
+  // Check that labels are correctly assigned
+  assert(clusters[0].labels.includes("This is phrase 1"), 'Cluster 1 should contain phrase 1');
+  assert(clusters[0].labels.includes("This is phrase 2"), 'Cluster 1 should contain phrase 2');
+  assert(clusters[1].labels.includes("This is phrase 3"), 'Cluster 2 should contain phrase 3');
+  assert(clusters[1].labels.includes("This is phrase 4"), 'Cluster 2 should contain phrase 4');
   
   console.log('✓ Clustering with phrases test passed');
 }
@@ -123,19 +111,14 @@ function testDisabledClustering() {
     [0.1, 0.9],
   ];
   
-  // Configure clustering to be disabled
-  updateClusteringConfig({
-    enableClustering: false
-  });
-  
-  // Run clustering
-  const clusters = clusterEmbeddings(embeddings);
-  
+  // Use legacy preset to disable clustering (forces single cluster)
+  const clusters = clusterEmbeddings(embeddings, getPreset('legacy'));
+
   // Verify we have only 1 cluster
   assert.strictEqual(clusters.length, 1, 'Should create only 1 cluster when disabled');
-  
+
   // Verify all embeddings are in the single cluster
-  assert.strictEqual(clusters[0].embeddings.length, 4, 'Single cluster should contain all embeddings');
+  assert.strictEqual(clusters[0].members.length, 4, 'Single cluster should contain all embeddings');
   
   console.log('✓ Disabled clustering test passed');
 }
@@ -155,22 +138,18 @@ function testSmallClustersHandling() {
     [0.5, 0.5],  // Cluster 3 (1 item) - too small, should be merged
   ];
   
-  // Configure clustering to require min size of 2
-  updateClusteringConfig({
-    enableClustering: true,
+  // Pass config directly with min size of 2
+  const clusters = clusterEmbeddings(embeddings, {
     similarityThreshold: 0.9,
     minClusterSize: 2,
-    maxClusters: 3
+    maxClusters: 3,
   });
-  
-  // Run clustering
-  const clusters = clusterEmbeddings(embeddings);
-  
+
   // Verify we have 2 clusters (the small one should be merged)
   assert.strictEqual(clusters.length, 2, 'Should merge small clusters');
-  
+
   // Verify all embeddings are accounted for
-  const totalEmbeddings = clusters.reduce((sum, cluster) => sum + cluster.embeddings.length, 0);
+  const totalEmbeddings = clusters.reduce((sum, cluster) => sum + cluster.members.length, 0);
   assert.strictEqual(totalEmbeddings, 7, 'All embeddings should be assigned to clusters');
   
   console.log('✓ Small clusters handling test passed');
@@ -188,7 +167,7 @@ function testAverageEmbedding() {
   ];
   
   // Expected average: [4, 5, 6]
-  const average = calculateAverageEmbedding(vectors);
+  const average = averageEmbeddings(vectors);
   
   // Check result
   assert.deepStrictEqual(average, [4, 5, 6], 'Average should be calculated correctly');
