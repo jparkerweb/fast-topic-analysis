@@ -32,9 +32,10 @@ All model and clustering configuration is in `.env` at the project root.
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `ENABLE_CLUSTERING` | Enable/disable clustering | `true` |
+| `CLUSTERING_ALGORITHM` | Clustering algorithm (`default` or `hdbscan`) | `default` |
 | `CLUSTERING_SIMILARITY_THRESHOLD` | Similarity threshold for cluster assignment (0-1) | `0.9` |
 | `CLUSTERING_MIN_CLUSTER_SIZE` | Minimum phrases per cluster | `5` |
-| `CLUSTERING_MAX_CLUSTERS` | Maximum clusters per topic | `5` |
+| `CLUSTERING_MAX_CLUSTERS` | Maximum clusters per topic (default algorithm only) | `5` |
 
 Clustering settings can be overridden at runtime via `generate.js` CLI flags (see Development Commands).
 

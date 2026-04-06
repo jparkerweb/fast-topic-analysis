@@ -2,7 +2,7 @@
 // -- imports --
 // -------------
 import { prefixConfig, generateEmbeddings } from "./modules/embedding.js";
-import { cosineSimilarity } from "./modules/similarity.js";
+import { cosineSimilarity } from 'embedding-utils';
 import { parseSentences } from 'sentence-parse';
 import fs from 'fs';
 import readline from 'readline';

@@ -28,6 +28,13 @@ node generate.js --preset performance       # threshold=0.85, min=10, max=3
 node generate.js --preset legacy            # disables clustering entirely
 ```
 
+### Clustering Algorithm
+
+```bash
+node generate.js --algorithm default    # agglomerative (default)
+node generate.js --algorithm hdbscan    # density-based, auto cluster count
+```
+
 ### Individual Clustering Flags
 
 ```bash
@@ -67,12 +74,18 @@ Preferences are saved to `run-demo-config.json` between runs.
 ## Run Tests
 
 ```bash
-npm test
-# or
-node test/cluster-test.js
+npm test                          # runs cluster-test.js ONLY (not the full suite)
+node test/cluster-test.js         # core clustering tests (6 tests)
+node test/v030-features-test.js   # EU v0.3.0 feature tests (16 tests)
+node test/manifest-test.js        # manifest module tests (7 tests)
 ```
 
-Tests cover: basic clustering, clustering with phrases, disabled clustering, small cluster merging, average embedding calculation, and cohesion scoring. Tests use Node's built-in `assert` module (no test framework).
+Run all tests at once:
+```bash
+node test/cluster-test.js && node test/v030-features-test.js && node test/manifest-test.js
+```
+
+Tests cover: basic clustering, clustering with phrases, disabled clustering, small cluster merging, average embedding calculation, cohesion scoring, assignToCluster, silhouetteScore, HDBSCAN (including noise reassignment and fallback), and Float32Array compatibility. Tests use Node's built-in `assert` module (no test framework).
 
 ## Clean Install
 

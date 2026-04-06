@@ -18,10 +18,11 @@ Fast Topic Analysis is a powerful tool for identifying topic matches in text wit
 
 Key features:
 - **Multiple Embeddings Per Topic**: Creates several weighted average embeddings for each topic instead of a single representation, capturing different semantic variations
-- **Embedding Clustering**: Groups similar phrases within topics to form coherent semantic clusters
-- **Cohesion Scoring**: Measures how tightly grouped the embeddings are within each cluster, providing insight into cluster quality
+- **Embedding Clustering**: Groups similar phrases within topics to form coherent semantic clusters using agglomerative or HDBSCAN algorithms
+- **Cohesion & Silhouette Scoring**: Measures cluster quality via per-cluster cohesion and global silhouette score
 - **Configurable Precision**: Offers preset configurations for different use cases (high precision, balanced, performance)
 - **Fast Processing**: Optimized for efficient text analysis with minimal processing time
+- **Powered by `embedding-utils`**: All vector math, clustering, similarity, and embedding generation provided by the [`embedding-utils`](https://www.npmjs.com/package/embedding-utils) library
 
 The project has two main .js files:
 1. A generator (`generate.js`) that creates topic embeddings from training data
@@ -89,6 +90,7 @@ Command-line options for `generate.js`:
 - `--similarity-threshold <num>`: Set similarity threshold for clustering (0-1)
 - `--min-cluster-size <num>`: Set minimum cluster size
 - `--max-clusters <num>`: Set maximum number of clusters per topic
+- `--algorithm <name>`: Clustering algorithm to use (`default` or `hdbscan`)
 - `--incremental`: Update clusters incrementally (new JSONL entries only)
 - `--help`: Show help message
 
@@ -111,8 +113,8 @@ node generate.js --incremental
 This will:
 - Validate the manifest (data integrity + model consistency)
 - Embed only the new phrases
-- Assign each new embedding to the nearest existing cluster
-- Update cluster centroids via weighted average math
+- Assign each new embedding to the nearest existing cluster using `assignToCluster()`
+- Update cluster centroids via incremental weighted averaging
 - Update the manifest for future incremental runs
 
 Incremental mode requires a prior full generation (which creates a manifest file). If training data has been edited (not just appended), or the model/precision has changed, a full regeneration is required.
@@ -167,19 +169,17 @@ The analysis will show:
 │   └── topic_embeddings/            # Generated embeddings
 ├── test-messages/                   # Test files
 ├── modules/
-│   ├── embedding.js                 # Embedding functions
-│   ├── similarity.js                # Similarity calculation
+│   ├── embedding.js                 # Thin wrapper around embedding-utils provider
 │   ├── manifest.js                  # Incremental manifest operations
-│   └── clusterEmbeddings.js         # Clustering functionality
+│   └── utils.js                     # Utility functions (toBoolean)
 ├── test/
 │   ├── cluster-test.js              # Unit tests for clustering
-│   ├── weighted-average-test.js     # Unit tests for weighted average math
+│   ├── v030-features-test.js        # Tests for EU v0.3.0 features (assignToCluster, silhouetteScore, HDBSCAN, Float32Array)
 │   ├── manifest-test.js             # Unit tests for manifest module
 │   ├── incremental-integration-test.js  # Integration test for incremental gen
-│   ├── incremental-edge-cases-test.js   # Edge case tests for incremental mode
-│   └── demo-clustering.js           # Clustering demo test
+│   └── incremental-edge-cases-test.js   # Edge case tests for incremental mode
 ├── generate.js                      # Embedding generator
-├── run-demo.js                      # Test runner
+├── run-demo.js                      # Interactive analysis demo
 └── labels-config.js                 # Topic definitions
 ```
 
@@ -209,6 +209,7 @@ Configure clustering behavior in `.env`:
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
 | `ENABLE_CLUSTERING` | Enable or disable clustering functionality | `true` | `ENABLE_CLUSTERING=true` |
+| `CLUSTERING_ALGORITHM` | Clustering algorithm (`default` or `hdbscan`) | `default` | `CLUSTERING_ALGORITHM=hdbscan` |
 | `CLUSTERING_SIMILARITY_THRESHOLD` | Threshold for considering embeddings similar (0-1) | `0.9` | `CLUSTERING_SIMILARITY_THRESHOLD=0.85` |
 | `CLUSTERING_MIN_CLUSTER_SIZE` | Minimum number of phrases per cluster | `5` | `CLUSTERING_MIN_CLUSTER_SIZE=3` |
 | `CLUSTERING_MAX_CLUSTERS` | Maximum number of clusters per topic | `5` | `CLUSTERING_MAX_CLUSTERS=8` |
@@ -217,6 +218,7 @@ Example configuration:
 ```env
 # Clustering Configuration
 ENABLE_CLUSTERING=true
+CLUSTERING_ALGORITHM=default
 CLUSTERING_SIMILARITY_THRESHOLD=0.9
 CLUSTERING_MIN_CLUSTER_SIZE=5
 CLUSTERING_MAX_CLUSTERS=5
@@ -260,7 +262,11 @@ The labels to be used when generating the topic embeddings are defined in `label
 
 ## How Clustering Works
 
-The clustering algorithm groups similar embeddings based on cosine similarity:
+Two clustering algorithms are available, selectable via `--algorithm` or `CLUSTERING_ALGORITHM`:
+
+### Default Algorithm (Agglomerative)
+
+Groups similar embeddings based on cosine similarity:
 
 1. Calculate embeddings for all phrases in a topic
 2. Initialize the first cluster with the first embedding
@@ -275,17 +281,27 @@ The clustering algorithm groups similar embeddings based on cosine similarity:
 5. Calculate the average embedding for each final cluster
 6. Calculate a cohesion score for each cluster (average similarity between all embeddings and the centroid)
 
-This approach ensures that all phrase embeddings are represented in the final clusters while maintaining semantic coherence within each cluster. The algorithm balances precision and performance by limiting the number of clusters while ensuring that each cluster contains sufficiently similar embeddings.
+### HDBSCAN Algorithm
 
-### Cohesion Score
+Density-based clustering that automatically determines the number of clusters:
 
-Each cluster includes a cohesion score that measures how tightly grouped the embeddings are within the cluster. The cohesion score is calculated as the average cosine similarity between each embedding in the cluster and the cluster's centroid.
+1. Calculate embeddings for all phrases in a topic
+2. Run HDBSCAN with the configured `minClusterSize` parameter
+3. Any noise points (not assigned to a cluster by HDBSCAN) are reassigned to the nearest cluster using `assignToCluster()`
+4. Centroids and cohesion scores are recomputed after noise absorption
+5. If HDBSCAN finds no clusters, falls back to a single cluster containing all embeddings
 
-- A higher cohesion score (closer to 1.0) indicates a more tightly grouped cluster with very similar embeddings
-- A lower cohesion score indicates a more diverse cluster with embeddings that are less similar to each other
+HDBSCAN is more conservative about cluster formation and works best with larger datasets. Use `--algorithm hdbscan` to enable it.
 
-The cohesion score can be useful for:
+### Quality Metrics
+
+**Cohesion Score** (per-cluster): Measures how tightly grouped the embeddings are within a cluster. Calculated as the average cosine similarity between each embedding and the cluster's centroid. Higher values (closer to 1.0) indicate tighter clusters.
+
+**Silhouette Score** (global): Measures how well-separated clusters are from each other. Ranges from -1 to +1, where higher values indicate better-defined clusters. Returns 0 for single-cluster topics. Both metrics are saved to the cluster JSON files and displayed during generation.
+
+These scores are useful for:
 - Evaluating the quality of clusters
+- Comparing clustering algorithms and configurations
 - Identifying topics that might benefit from more training data
 - Understanding why certain matches might be less reliable than others
 

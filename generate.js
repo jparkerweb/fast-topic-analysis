@@ -1,9 +1,11 @@
 // -------------
 // -- imports --
 // -------------
-import { combineTopicEmbeddings, generateEmbeddings, prefixConfig, weightedAverage } from "./modules/embedding.js";
-import { clusterEmbeddings, updateClusteringConfig, clusteringConfig } from "./modules/clusterEmbeddings.js";
-import { cosineSimilarity } from "./modules/similarity.js";
+import dotenv from 'dotenv';
+dotenv.config();
+import { combineTopicEmbeddings, generateEmbeddings, prefixConfig } from "./modules/embedding.js";
+import { clusterEmbeddings, getPreset, centroidCohesion, silhouetteScore, batchIncrementalAverage, averageEmbeddings, assignToCluster, hdbscan } from 'embedding-utils';
+import { toBoolean } from './modules/utils.js';
 import { labels } from "./labels-config.js";
 import { loadManifest, validateManifest, getNewLines, updateManifest, createManifest } from './modules/manifest.js';
 import fs from 'fs';
@@ -12,9 +14,33 @@ import path from 'path';
 // Parse command line arguments
 const args = parseCommandLineArgs();
 
-// Update clustering configuration if needed
+// Build clustering configuration from .env defaults
+let clusteringConfig = {
+  enabled: toBoolean(process.env.ENABLE_CLUSTERING) ?? true,
+  algorithm: process.env.CLUSTERING_ALGORITHM || 'default',
+  similarityThreshold: parseFloat(process.env.CLUSTERING_SIMILARITY_THRESHOLD) || 0.9,
+  minClusterSize: parseInt(process.env.CLUSTERING_MIN_CLUSTER_SIZE) || 5,
+  maxClusters: parseInt(process.env.CLUSTERING_MAX_CLUSTERS) || 5,
+};
+
+// Apply CLI overrides
+if (args.enableClustering !== undefined) clusteringConfig.enabled = toBoolean(args.enableClustering);
+if (args.similarityThreshold !== undefined) clusteringConfig.similarityThreshold = parseFloat(args.similarityThreshold);
+if (args.minClusterSize !== undefined) clusteringConfig.minClusterSize = parseInt(args.minClusterSize);
+if (args.maxClusters !== undefined) clusteringConfig.maxClusters = parseInt(args.maxClusters);
+if (args.algorithm !== undefined) clusteringConfig.algorithm = args.algorithm;
+
+// Apply preset if specified (overrides individual settings)
+if (args.preset) {
+  const preset = getPreset(args.preset);
+  if (preset) {
+    clusteringConfig = { ...clusteringConfig, ...preset };
+  } else {
+    console.warn(`Unknown preset: ${args.preset}. Using current configuration.`);
+  }
+}
+
 if (Object.keys(args).length > 0) {
-  updateClusteringConfig(args);
   console.log('Clustering configuration:', clusteringConfig);
 }
 
@@ -133,22 +159,14 @@ async function incrementalGenerate() {
     }));
 
     // Assign each new embedding to nearest cluster and update centroid
+    const clusterAdapters = clusters.map(c => ({ centroid: c.data.embedding }));
     for (const newEmbedding of embeddings) {
-      let bestIdx = 0;
-      let bestSim = -Infinity;
-      for (let i = 0; i < clusters.length; i++) {
-        const sim = cosineSimilarity(Array.from(newEmbedding), clusters[i].data.embedding);
-        if (sim > bestSim) {
-          bestSim = sim;
-          bestIdx = i;
-        }
-      }
-      clusters[bestIdx].data.embedding = weightedAverage(
-        clusters[bestIdx].data.embedding,
-        clusters[bestIdx].data.clusterSize,
-        [Array.from(newEmbedding)]
+      const { clusterIndex } = assignToCluster(newEmbedding, clusterAdapters);
+      clusters[clusterIndex].data.embedding = Array.from(
+        batchIncrementalAverage(clusters[clusterIndex].data.embedding, [Array.from(newEmbedding)], clusters[clusterIndex].data.clusterSize)
       );
-      clusters[bestIdx].data.clusterSize += 1;
+      clusters[clusterIndex].data.clusterSize += 1;
+      clusterAdapters[clusterIndex].centroid = clusters[clusterIndex].data.embedding;
     }
 
     // Update totalPhrases on all clusters for this topic
@@ -197,22 +215,75 @@ async function generateTopicEmbedding(label) {
         const embeddings = phrasesWithEmbeddings.map(item => item.embedding);
         
         // Cluster the embeddings
-        const clusters = clusterEmbeddings(embeddings, phrasesWithEmbeddings);
-        
+        let clusters;
+        if (!clusteringConfig.enabled) {
+            // Disabled clustering: single cluster with all embeddings
+            clusters = [{
+                centroid: averageEmbeddings(embeddings),
+                members: embeddings,
+                labels: phrasesWithEmbeddings.map(item => item.phrase),
+                size: embeddings.length,
+                cohesion: 1.0,
+            }];
+        } else if (clusteringConfig.algorithm === 'hdbscan') {
+            const clusterLabels = phrasesWithEmbeddings.map(item => item.phrase);
+            const result = hdbscan(embeddings, {
+                minClusterSize: clusteringConfig.minClusterSize,
+                labels: clusterLabels,
+            });
+            clusters = result.clusters;
+
+            // Assign noise points to nearest cluster so all phrases are represented
+            if (result.noise.members.length > 0 && clusters.length > 0) {
+                for (let n = 0; n < result.noise.members.length; n++) {
+                    const { clusterIndex } = assignToCluster(result.noise.members[n], clusters);
+                    clusters[clusterIndex].members.push(result.noise.members[n]);
+                    if (result.noise.labels && result.noise.labels[n]) {
+                        clusters[clusterIndex].labels = clusters[clusterIndex].labels || [];
+                        clusters[clusterIndex].labels.push(result.noise.labels[n]);
+                    }
+                    clusters[clusterIndex].size += 1;
+                }
+                // Recompute centroids after absorbing noise
+                for (const cluster of clusters) {
+                    cluster.centroid = averageEmbeddings(cluster.members);
+                    cluster.cohesion = centroidCohesion(cluster);
+                }
+            }
+
+            // If HDBSCAN found no clusters, fall back to single cluster
+            if (clusters.length === 0) {
+                clusters = [{
+                    centroid: averageEmbeddings(embeddings),
+                    members: embeddings,
+                    labels: phrasesWithEmbeddings.map(item => item.phrase),
+                    size: embeddings.length,
+                    cohesion: 1.0,
+                }];
+                console.log(`  HDBSCAN found no clusters for "${topicName}", falling back to single cluster`);
+            }
+        } else {
+            const clusterLabels = phrasesWithEmbeddings.map(item => item.phrase);
+            clusters = clusterEmbeddings(embeddings, {
+                similarityThreshold: clusteringConfig.similarityThreshold,
+                minClusterSize: clusteringConfig.minClusterSize,
+                maxClusters: clusteringConfig.maxClusters,
+            }, clusterLabels);
+        }
+
+        // Compute global silhouette score across all clusters
+        const silhouette = clusters.length >= 2 ? silhouetteScore(clusters) : 0;
+
         console.log(`Topic "${topicName}" generated ${clusters.length} clusters`);
-        
+
         // Save each cluster as a separate embedding file
         for (let i = 0; i < clusters.length; i++) {
             const cluster = clusters[i];
-            const clusterSize = cluster.embeddings.length;
+            const clusterSize = cluster.size;
             const clusterCoverage = (clusterSize / newPhrases.length * 100).toFixed(2);
-            
-            // Calculate cohesion - average similarity between all embeddings and the centroid
-            let totalSimilarity = 0;
-            for (const embedding of cluster.embeddings) {
-                totalSimilarity += cosineSimilarity(embedding, cluster.centroid);
-            }
-            const cohesion = clusterSize > 0 ? totalSimilarity / clusterSize : 1.0;
+
+            // Use library-provided cohesion, or calculate via centroidCohesion
+            const cohesion = cluster.cohesion ?? centroidCohesion(cluster);
             
             const dataObject = {
                 topic: topicName,
@@ -222,10 +293,11 @@ async function generateTopicEmbedding(label) {
                 clusterSize: clusterSize,
                 clusterCoverage: `${clusterCoverage}%`,
                 cohesion: cohesion.toFixed(4),
+                silhouetteScore: silhouette.toFixed(4),
                 totalPhrases: newPhrases.length,
                 embeddingModel: process.env.ONNX_EMBEDDING_MODEL,
                 modelPrecision: process.env.ONNX_EMBEDDING_MODEL_PRECISION,
-                embedding: cluster.centroid
+                embedding: Array.from(cluster.centroid)
             };
             
             // Create filename: topic-cluster-X-of-Y.json
@@ -233,7 +305,7 @@ async function generateTopicEmbedding(label) {
             const dataString = JSON.stringify(dataObject, null, 2);
             fs.writeFileSync(path.join(topicEmbeddingsDir, filename), dataString, { flag: 'w' });
             
-            console.log(`  - Cluster ${i+1}/${clusters.length}: ${clusterSize} phrases (${clusterCoverage}% coverage, cohesion: ${cohesion.toFixed(4)})`);
+            console.log(`  - Cluster ${i+1}/${clusters.length}: ${clusterSize} phrases (${clusterCoverage}% coverage, cohesion: ${cohesion.toFixed(4)}, silhouette: ${silhouette.toFixed(4)})`);
         }
         
         console.log(`Topic embedding for ${topicName} generated successfully`);
@@ -275,6 +347,8 @@ function parseCommandLineArgs() {
       args.minClusterSize = argv[++i];
     } else if (arg === '--max-clusters') {
       args.maxClusters = argv[++i];
+    } else if (arg === '--algorithm') {
+      args.algorithm = argv[++i];
     } else if (arg === '--incremental') {
       args.incremental = true;
     } else if (arg === '--help') {
@@ -300,6 +374,7 @@ Options:
   --similarity-threshold <n>  Set similarity threshold for clustering (0-1)
   --min-cluster-size <n>      Set minimum cluster size
   --max-clusters <n>          Set maximum number of clusters per topic
+  --algorithm <name>          Clustering algorithm to use (default, hdbscan)
   --incremental              Update clusters incrementally (new JSONL entries only)
   --help                      Show this help message
 
@@ -307,6 +382,7 @@ Examples:
   node generate.js --preset high-precision
   node generate.js --enable-clustering true --similarity-threshold 0.92
   node generate.js --max-clusters 3
+  node generate.js --algorithm hdbscan
   node generate.js --incremental
 `);
 }

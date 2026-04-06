@@ -2,6 +2,33 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.5.0] - 2026-04-06
+### Added
+- HDBSCAN clustering algorithm as alternative to default agglomerative clustering (`--algorithm hdbscan` CLI flag, `CLUSTERING_ALGORITHM` env var)
+- Silhouette score as global clustering quality metric (displayed in console output and saved to cluster JSON files)
+- `assignToCluster()` from `embedding-utils` for cleaner incremental cluster assignment
+- New test suite for v0.3.0 features: `test/v030-features-test.js` (16 tests covering assignToCluster, silhouetteScore, HDBSCAN, Float32Array handling)
+
+### Updated
+- Upgraded `embedding-utils` from `^0.2.0` to `^0.3.0`
+- Float32Array compatibility: all embedding serialization now uses `Array.from()` to handle v0.3.0's typed array returns
+- Incremental mode refactored to use `assignToCluster()` instead of manual cosine similarity loop
+- HDBSCAN noise points are automatically reassigned to nearest cluster; falls back to single cluster if HDBSCAN finds no clusters
+- Cleaned up redundant `calculateCohesion` test helper in favor of direct `centroidCohesion()` calls
+
+## [1.4.0] - 2026-04-03
+### Updated
+- Migrated from custom embedding/similarity/clustering modules to `embedding-utils` npm package
+- Replaced `modules/similarity.js` and `modules/clusterEmbeddings.js` with `embedding-utils` imports
+- Rewrote `modules/embedding.js` as thin wrapper around `embedding-utils`'s `createLocalProvider()`
+- Updated `@huggingface/transformers` from `^3.8.1` to `^4.0.1`
+- Updated project documentation (AGENTS.md, architecture docs)
+
+### Removed
+- `modules/similarity.js` (replaced by `cosineSimilarity` from `embedding-utils`)
+- `modules/clusterEmbeddings.js` (replaced by library clustering functions)
+- `test/demo-clustering.js` and `test/weighted-average-test.js` (obsolete standalone tests)
+
 ## [1.3.0] - 2026-03-27
 ### Added
 - Incremental embedding updates via `node generate.js --incremental`
