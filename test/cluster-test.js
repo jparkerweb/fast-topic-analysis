@@ -4,11 +4,6 @@
 import { clusterEmbeddings, averageEmbeddings, cosineSimilarity, centroidCohesion, getPreset } from 'embedding-utils';
 import assert from 'assert';
 
-// Helper to calculate cohesion using library's centroidCohesion
-function calculateCohesion(embeddings, centroid) {
-  return centroidCohesion({ members: embeddings, centroid });
-}
-
 // -----------------------------
 // -- Test clustering function --
 // -----------------------------
@@ -170,7 +165,7 @@ function testAverageEmbedding() {
   const average = averageEmbeddings(vectors);
   
   // Check result
-  assert.deepStrictEqual(average, [4, 5, 6], 'Average should be calculated correctly');
+  assert.deepStrictEqual(Array.from(average), [4, 5, 6], 'Average should be calculated correctly');
   
   console.log('✓ Average embedding calculation test passed');
 }
@@ -189,7 +184,7 @@ function testCohesionCalculation() {
   const centroid = [1.0, 0.0];
   
   // Calculate expected cohesion
-  const expectedCohesion = calculateCohesion(embeddings, centroid);
+  const expectedCohesion = centroidCohesion({ members: embeddings, centroid });
   
   // Verify the cohesion is calculated correctly
   // The cohesion should be the average of:
@@ -205,7 +200,7 @@ function testCohesionCalculation() {
     [0.5, 0.5],   // Lower similarity
   ];
   
-  const diverseCohesion = calculateCohesion(diverseEmbeddings, centroid);
+  const diverseCohesion = centroidCohesion({ members: diverseEmbeddings, centroid });
   
   // Verify the diverse cohesion is lower
   assert(diverseCohesion < expectedCohesion, 'Diverse cluster should have lower cohesion');

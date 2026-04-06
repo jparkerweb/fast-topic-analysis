@@ -7,7 +7,7 @@
 1. Reads training data from `data/training_data.jsonl` (JSONL format: `{"text": "...", "label": "..."}`)
 2. Filters phrases by topic labels defined in `labels-config.js`
 3. Generates embeddings for each phrase using `modules/embedding.js` (thin wrapper around `embedding-utils`)
-4. Clusters embeddings per topic using `clusterEmbeddings()` from `embedding-utils`
+4. Clusters embeddings per topic using `clusterEmbeddings()` or `hdbscan()` from `embedding-utils`
 5. Saves each cluster as a separate JSON file in `data/topic_embeddings/` (format: `<topic>-cluster-<N>-of-<M>.json`)
 6. Creates a manifest file (`data/incremental-manifest.json`) for subsequent incremental updates
 
@@ -15,7 +15,7 @@
 1. Loads and validates the manifest (content hash + model/precision check)
 2. Detects new lines appended to `training_data.jsonl`
 3. Embeds only the new phrases
-4. Assigns each new embedding to the nearest existing cluster via cosine similarity
+4. Assigns each new embedding to the nearest existing cluster using `assignToCluster()` from `embedding-utils`
 5. Updates cluster centroids using `batchIncrementalAverage` from `embedding-utils`
 6. Updates the manifest
 
@@ -43,17 +43,27 @@
 | `data/training_data.jsonl` | Training phrases with topic labels |
 | `data/incremental-manifest.json` | Incremental processing state (line count, content hash, model info) |
 
-## Clustering Algorithm
+## Clustering Algorithms
 
-Clustering is provided by `embedding-utils`'s `clusterEmbeddings()` function. Config (threshold, minClusterSize, maxClusters) is passed as arguments rather than managed via global mutable state. Use `getPreset(name)` from `embedding-utils` for preset handling. The algorithm:
+Two algorithms are available via `--algorithm` flag or `CLUSTERING_ALGORITHM` env var:
+
+### Default (Agglomerative)
+Provided by `embedding-utils`'s `clusterEmbeddings()`. Config (threshold, minClusterSize, maxClusters) is passed as arguments. Use `getPreset(name)` for preset handling. The algorithm:
 1. Initialize first cluster with first embedding
 2. For each remaining embedding: assign to most similar cluster if above threshold, otherwise create new cluster (up to `maxClusters`)
 3. Clusters smaller than `minClusterSize` are redistributed to the nearest valid cluster, or combined into a single "miscellaneous" cluster if no valid clusters exist
 4. Final output: array of `{ centroid, members, size, cohesion, labels }` objects
 
+### HDBSCAN
+Provided by `embedding-utils`'s `hdbscan()`. Density-based clustering that auto-determines cluster count. Uses `minClusterSize` parameter. Noise points are reassigned to nearest cluster via `assignToCluster()`. Falls back to single cluster if no clusters found. More conservative — works best with larger datasets.
+
+### Quality Metrics
+- **Cohesion** (per-cluster): average member-to-centroid cosine similarity, via `centroidCohesion()`
+- **Silhouette score** (global): cluster separation quality (-1 to +1), via `silhouetteScore()`. Returns 0 for single-cluster topics.
+
 ## Dependencies
 
-- `embedding-utils` -- Vector math, clustering, cosine similarity, embedding provider
+- `embedding-utils` (^0.3.0) -- Vector math, clustering (agglomerative + HDBSCAN), cosine similarity, silhouette score, embedding provider
 - `@huggingface/transformers` -- ONNX model loading and inference (local, no API)
 - `sentence-parse` -- Text-to-sentence splitting
 - `chalk` -- Terminal color output

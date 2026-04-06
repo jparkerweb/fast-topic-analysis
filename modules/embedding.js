@@ -59,9 +59,8 @@ export async function combineTopicEmbeddings(existingEmbedding, existingCount, n
     });
 
     if (!existingEmbedding) {
-        return averageEmbeddings(newEmbeddings);
+        return Array.from(averageEmbeddings(newEmbeddings));
     }
 
-    const combinedEmbedding = batchIncrementalAverage(existingEmbedding, newEmbeddings, existingCount);
-    return combinedEmbedding;
+    return Array.from(batchIncrementalAverage(existingEmbedding, newEmbeddings, existingCount));
 }
