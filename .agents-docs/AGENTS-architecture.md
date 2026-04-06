@@ -69,6 +69,11 @@ Provided by `embedding-utils`'s `hdbscan()`. Density-based clustering that auto-
 - `chalk` -- Terminal color output
 - `dotenv` -- Environment variable loading
 
+## Gotchas
+
+- **Float32Array serialization**: `embedding-utils` v0.3.0 returns `Float32Array` from functions like `averageEmbeddings()`, `batchIncrementalAverage()`, and cluster centroids. `JSON.stringify(new Float32Array([1.5]))` silently produces `{"0":1.5}` instead of `[1.5]`. Always wrap with `Array.from()` before serializing to JSON. See `generate.js:300` and `modules/embedding.js:62,65` for examples.
+- **Do not recreate deleted modules**: `modules/similarity.js` and `modules/clusterEmbeddings.js` were intentionally removed in v1.4.0. All similarity, clustering, and vector math is now provided by `embedding-utils`. Do not add these back.
+
 ## Module System
 
 The project uses **ES modules** (`"type": "module"` in package.json). All imports use `import`/`export` syntax. The `embedding.js` module uses top-level `await` for pipeline initialization.
