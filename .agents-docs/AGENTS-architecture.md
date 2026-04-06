@@ -76,4 +76,4 @@ Provided by `embedding-utils`'s `hdbscan()`. Density-based clustering that auto-
 
 ## Module System
 
-The project uses **ES modules** (`"type": "module"` in package.json). All imports use `import`/`export` syntax. The `embedding.js` module uses top-level `await` for pipeline initialization.
+The project uses **ES modules** (`"type": "module"` in package.json). All imports use `import`/`export` syntax.
