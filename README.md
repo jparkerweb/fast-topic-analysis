@@ -2,7 +2,7 @@
 
 A tool for analyzing text against predefined topics using average weight embeddings and cosine similarity.
 
-![Fast Topic Analysis](./.readme/buckets.jpg)
+<img src="https://raw.githubusercontent.com/jparkerweb/fast-topic-analysis/main/.readme/buckets.jpg" alt="banner">
 
 #### Maintained by
 <a href="https://www.equilllabs.com">
