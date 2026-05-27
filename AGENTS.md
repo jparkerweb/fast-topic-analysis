@@ -16,13 +16,13 @@ Details: [Development Commands](./.agents-docs/AGENTS-development-commands.md)
 
 ## Architecture
 
-Two-phase pipeline: (1) `generate.js` creates clustered topic embeddings from training data, (2) `run-demo.js` analyzes text against those embeddings. `modules/embedding.js` is a thin wrapper around `embedding-utils` for provider initialization. Clustering (agglomerative + HDBSCAN), similarity, silhouette scoring, and vector math are provided by `embedding-utils` (^0.3.0). Configuration lives in `.env` and `labels-config.js`.
+Two-phase pipeline: (1) `generate.js` creates clustered topic embeddings from training data, (2) `run-demo.js` analyzes text against those embeddings. `modules/embedding.js` is a thin wrapper around `embedding-utils` for provider initialization. Clustering (agglomerative + HDBSCAN), similarity, silhouette scoring, and vector math are provided by `embedding-utils` (^0.4.0). Configuration lives in `.env` and `labels-config.js`.
 
 Details: [Architecture](./.agents-docs/AGENTS-architecture.md)
 
 ## Environment Configuration
 
-Model selection, precision, prefix settings, clustering parameters, and local model caching are all configured via `.env`. Topic labels and thresholds are defined in `labels-config.js`. Clustering behavior can be overridden at runtime via CLI flags or presets.
+Model selection, precision, clustering parameters, and local model caching are all configured via `.env`. Topic labels and thresholds are defined in `labels-config.js`. Clustering behavior can be overridden at runtime via CLI flags or presets.
 
 Details: [Environment Configuration](./.agents-docs/AGENTS-environment-configuration.md)
 

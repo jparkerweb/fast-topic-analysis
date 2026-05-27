@@ -11,21 +11,26 @@ All model and clustering configuration is in `.env` at the project root.
 |----------|-------------|---------|
 | `ONNX_EMBEDDING_MODEL` | HuggingFace model identifier | `Xenova/all-MiniLM-L12-v2` |
 | `ONNX_EMBEDDING_MODEL_PRECISION` | Model precision (`fp32`, `fp16`, `q8`) | `fp32` |
-| `ONNX_EMBEDDING_MODEL_REQUIRES_PREFIX` | Whether model needs task prefixes | `false` |
-| `ONNX_EMBEDDING_MODEL_DOCUMENT_PREFIX` | Prefix for training data embeddings | `search_document: ` |
-| `ONNX_EMBEDDING_MODEL_QUERY_PREFIX` | Prefix for query embeddings | `search_query: ` |
 | `ALLOW_REMOTE_MODELS` | Allow downloading models from HuggingFace | `true` |
 | `LOCAL_MODEL_PATH` | Local model storage path | `models/` |
 | `CACHE_DIR` | Downloaded model cache directory | `models/` |
 
+### Prefix Override (optional)
+
+`embedding-utils` v0.4.0+ automatically detects the correct `document`/`query` prefixes and pooling strategy from its built-in model registry. You generally do not need to configure these manually.
+
+To override the registry default for a specific model:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `ONNX_EMBEDDING_MODEL_DOCUMENT_PREFIX` | Override prefix for training data (document input type) | `search_document: ` |
+| `ONNX_EMBEDDING_MODEL_QUERY_PREFIX` | Override prefix for query/analysis (query input type) | `search_query: ` |
+
+Leave these unset to use the registry defaults.
+
 ### Supported Models
 
-| Model | Precision | Size | Requires Prefix |
-|-------|-----------|------|-----------------|
-| `Xenova/all-MiniLM-L6-v2` | fp32, fp16, q8 | 90/45/23 MB | No |
-| `Xenova/all-MiniLM-L12-v2` | fp32, fp16, q8 | 133/67/34 MB | No |
-| `Xenova/paraphrase-multilingual-MiniLM-L12-v2` | fp32, fp16, q8 | 470/235/118 MB | No |
-| `nomic-ai/modernbert-embed-base` | fp32, fp16, q8 | 568/284/146 MB | Yes (`search_document` / `search_query`) |
+See `.env` for the full table of all 28 supported models, including dimensions, max tokens, size, pooling method, and prefix info.
 
 ### Clustering Settings
 

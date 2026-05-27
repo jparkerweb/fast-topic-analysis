@@ -3,7 +3,7 @@
 // -------------
 import dotenv from 'dotenv';
 dotenv.config();
-import { combineTopicEmbeddings, generateEmbeddings, prefixConfig } from "./modules/embedding.js";
+import { combineTopicEmbeddings, generateEmbeddings } from "./modules/embedding.js";
 import { clusterEmbeddings, getPreset, centroidCohesion, silhouetteScore, batchIncrementalAverage, averageEmbeddings, assignToCluster, hdbscan } from 'embedding-utils';
 import { toBoolean } from './modules/utils.js';
 import { labels } from "./labels-config.js";
@@ -145,7 +145,7 @@ async function incrementalGenerate() {
   for (const [topicLabel, entries] of topicGroups) {
     const phrases = entries.map(e => e.text);
     const embeddings = await generateEmbeddings(phrases, {
-      prefix: prefixConfig.dataPrefix,
+      inputType: 'document',
       returnPhrases: false,
       logging: false
     });
@@ -206,7 +206,7 @@ async function generateTopicEmbedding(label) {
     try {
         // Generate embeddings for all phrases in the topic
         const phrasesWithEmbeddings = await generateEmbeddings(newPhrases, {
-            prefix: prefixConfig.dataPrefix,
+            inputType: 'document',
             returnPhrases: true,
             logging: false,
         });

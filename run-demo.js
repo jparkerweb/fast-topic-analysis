@@ -1,7 +1,7 @@
 // -------------
 // -- imports --
 // -------------
-import { prefixConfig, generateEmbeddings } from "./modules/embedding.js";
+import { generateEmbeddings } from "./modules/embedding.js";
 import { cosineSimilarity } from 'embedding-utils';
 import { parseSentences } from 'sentence-parse';
 import fs from 'fs';
@@ -91,7 +91,7 @@ async function testSimilarity(testMessage) {
     const sentences = await parseSentences(testMessage);
     totalSentences += sentences.length;
     let sentencesWithEmbeddings = await generateEmbeddings(sentences, {
-        prefix: prefixConfig.queryPrefix,
+        inputType: 'query',
         returnPhrases: true,
         logging: false,
     });
@@ -129,15 +129,10 @@ async function testSimilarity(testMessage) {
                 
                 if (similarity >= threshold) {
                     matchFound = true;
-                    
-                    // Clean phrase by removing prefixConfig.queryPrefix from phrase
-                    const cleanedPhrase = (phrase.startsWith(prefixConfig.queryPrefix) && prefixConfig.queryPrefix !== '')
-                        ? phrase.slice(prefixConfig.queryPrefix.length)
-                        : phrase;
-                    
-                    sentenceMatches.push({ 
-                        topicName, 
-                        cleanedPhrase,
+
+                    sentenceMatches.push({
+                        topicName,
+                        cleanedPhrase: phrase,
                         clusterIndex: cluster.clusterIndex,
                         totalClusters: cluster.totalClusters,
                         cohesion: cluster.cohesion
@@ -146,7 +141,7 @@ async function testSimilarity(testMessage) {
                     if (config.verboseLogs) {
                         console.log(chalk.red(`Topic: ${topicName} (Cluster ${cluster.clusterIndex + 1}/${cluster.totalClusters}, Cohesion: ${cluster.cohesion}) ⇢ Similarity Score: ${similarity.toFixed(4)}`));
                     } else if(!config.verboseLogs && config.showMatches) {
-                        console.log(chalk.red(`Topic: ${topicName} (Cluster ${cluster.clusterIndex + 1}/${cluster.totalClusters}, Cohesion: ${cluster.cohesion}) ⇢ Similarity Score: ${similarity.toFixed(4)} ⇠ ${cleanedPhrase}`));
+                        console.log(chalk.red(`Topic: ${topicName} (Cluster ${cluster.clusterIndex + 1}/${cluster.totalClusters}, Cohesion: ${cluster.cohesion}) ⇢ Similarity Score: ${similarity.toFixed(4)} ⇠ ${phrase}`));
                     }
                     
                     // We found a match for this topic, no need to check other clusters
