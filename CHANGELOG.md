@@ -2,7 +2,7 @@
 All notable changes to this project will be documented in this file.
 
 
-## [Unreleased]
+## [1.6.0] - 2026-05-27
 ### Updated
 - Upgraded `embedding-utils` from `^0.3.0` to `^0.4.0`
 - Prefixes and pooling are now auto-detected from `embedding-utils`'s built-in model registry. Removed `ONNX_EMBEDDING_MODEL_REQUIRES_PREFIX`. `ONNX_EMBEDDING_MODEL_DOCUMENT_PREFIX` and `ONNX_EMBEDDING_MODEL_QUERY_PREFIX` remain as optional overrides.
