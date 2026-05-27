@@ -1,5 +1,5 @@
 // -----------------------------------------------------------
-// -- Tests for embedding-utils v0.3.0 features used by FTA --
+// -- Tests for embedding-utils features used by FTA --
 // -----------------------------------------------------------
 import {
   assignToCluster,
@@ -13,7 +13,7 @@ import {
 } from 'embedding-utils';
 import assert from 'assert';
 
-console.log('Running v0.3.0 feature tests...');
+console.log('Running embedding-utils feature tests...');
 
 // ================================
 // == assignToCluster tests      ==
@@ -504,7 +504,7 @@ try {
   testFloat32ArrayIncrementalPipeline();
   testFloat32ArrayCosineSimilarityAcceptsBoth();
 
-  console.log('\n\u2705 All v0.3.0 feature tests passed!');
+  console.log('\n\u2705 All embedding-utils feature tests passed!');
 } catch (error) {
   console.error('\n\u274C Test failed:', error);
   process.exit(1);

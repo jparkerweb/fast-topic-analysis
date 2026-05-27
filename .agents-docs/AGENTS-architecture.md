@@ -30,7 +30,7 @@
 
 | Module | Exports | Purpose |
 |--------|---------|---------|
-| `embedding.js` | `provider`, `prefixConfig`, `generateEmbeddings()`, `combineTopicEmbeddings()` | Thin wrapper around `embedding-utils`'s `createLocalProvider()`. Initializes the ONNX embedding provider, generates embeddings with optional prefix support |
+| `embedding.js` | `provider`, `generateEmbeddings()`, `combineTopicEmbeddings()` | Thin wrapper around `embedding-utils`'s `createLocalProvider()`. Initializes the ONNX embedding provider. Prefixes and pooling are auto-detected from the `embedding-utils` model registry based on `inputType` ('document' or 'query') |
 | `manifest.js` | `createManifest()`, `loadManifest()`, `validateManifest()`, `getNewLines()`, `updateManifest()` | Manifest CRUD for incremental mode: tracks processed line count, SHA-256 content hash, model/precision info |
 | `utils.js` | `toBoolean()` | String-to-boolean conversion for env var parsing |
 
@@ -39,7 +39,7 @@
 | File | Purpose |
 |------|---------|
 | `labels-config.js` | Defines topic labels and their similarity thresholds (e.g., `{ label: "disney", threshold: 0.4 }`) |
-| `.env` | Model selection, precision, prefix config, clustering params, cache paths |
+| `.env` | Model selection, precision, clustering params, cache paths |
 | `data/training_data.jsonl` | Training phrases with topic labels |
 | `data/incremental-manifest.json` | Incremental processing state (line count, content hash, model info) |
 
@@ -63,7 +63,7 @@ Provided by `embedding-utils`'s `hdbscan()`. Density-based clustering that auto-
 
 ## Dependencies
 
-- `embedding-utils` (^0.3.0) -- Vector math, clustering (agglomerative + HDBSCAN), cosine similarity, silhouette score, embedding provider
+- `embedding-utils` (^0.4.0) -- Vector math, clustering (agglomerative + HDBSCAN), cosine similarity, silhouette score, embedding provider
 - `@huggingface/transformers` -- ONNX model loading and inference (local, no API)
 - `sentence-parse` -- Text-to-sentence splitting
 - `chalk` -- Terminal color output
@@ -71,7 +71,7 @@ Provided by `embedding-utils`'s `hdbscan()`. Density-based clustering that auto-
 
 ## Gotchas
 
-- **Float32Array serialization**: `embedding-utils` v0.3.0 returns `Float32Array` from functions like `averageEmbeddings()`, `batchIncrementalAverage()`, and cluster centroids. `JSON.stringify(new Float32Array([1.5]))` silently produces `{"0":1.5}` instead of `[1.5]`. Always wrap with `Array.from()` before serializing to JSON. See `generate.js:300` and `modules/embedding.js:62,65` for examples.
+- **Float32Array serialization**: `embedding-utils` returns `Float32Array` from functions like `averageEmbeddings()`, `batchIncrementalAverage()`, and cluster centroids. `JSON.stringify(new Float32Array([1.5]))` silently produces `{"0":1.5}` instead of `[1.5]`. Always wrap with `Array.from()` before serializing to JSON. See `generate.js:300` and `modules/embedding.js:62,65` for examples.
 - **Do not recreate deleted modules**: `modules/similarity.js` and `modules/clusterEmbeddings.js` were intentionally removed in v1.4.0. All similarity, clustering, and vector math is now provided by `embedding-utils`. Do not add these back.
 
 ## Module System

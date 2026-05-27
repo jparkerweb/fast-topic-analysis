@@ -174,7 +174,7 @@ The analysis will show:
 │   └── utils.js                     # Utility functions (toBoolean)
 ├── test/
 │   ├── cluster-test.js              # Unit tests for clustering
-│   ├── v030-features-test.js        # Tests for EU v0.3.0 features (assignToCluster, silhouetteScore, HDBSCAN, Float32Array)
+│   ├── embedding-utils-features-test.js        # Tests for embedding-utils features (assignToCluster, silhouetteScore, HDBSCAN, Float32Array)
 │   ├── manifest-test.js             # Unit tests for manifest module
 │   ├── incremental-integration-test.js  # Integration test for incremental gen
 │   └── incremental-edge-cases-test.js   # Edge case tests for incremental mode
@@ -193,13 +193,8 @@ Change the model settings in `.env` to use different embedding models and config
 ONNX_EMBEDDING_MODEL="Xenova/all-MiniLM-L12-v2"
 ONNX_EMBEDDING_MODEL_PRECISION=fp32
 
-# Available Models and their configurations:
-# | Model                                        | Precision      | Size                   | Requires Prefix | Data Prefix     | Search Prefix |
-# | -------------------------------------------- | -------------- | ---------------------- | --------------- | --------------- | ------------- |
-# | Xenova/all-MiniLM-L6-v2                      | fp32, fp16, q8 | 90 MB, 45 MB, 23 MB    | false           | null            | null          |
-# | Xenova/all-MiniLM-L12-v2                     | fp32, fp16, q8 | 133 MB, 67 MB, 34 MB   | false           | null            | null          |
-# | Xenova/paraphrase-multilingual-MiniLM-L12-v2 | fp32, fp16, q8 | 470 MB, 235 MB, 118 MB | false           | null            | null          |
-# | nomic-ai/modernbert-embed-base               | fp32, fp16, q8 | 568 MB, 284 MB, 146 MB | true            | search_document | search_query  |
+# Full model list with dimensions, max tokens, size, prefixes, and pooling:
+# See `.env` for the complete table of all 28 supported models.
 ```
 
 ### Clustering Configuration
@@ -232,16 +227,14 @@ CLUSTERING_MAX_CLUSTERS=5
 
 ### Task Instruction Prefixes
 
-Some models require specific prefixes to optimize their performance for different tasks. When a model has `Requires Prefix: true`, you must use the appropriate prefix:
+Prefixes are **automatically applied** by `embedding-utils` based on its built-in model registry. You do not need to configure them manually.
 
-- `Data Prefix`: Used when generating embeddings from training data
-- `Search Prefix`: Used when generating embeddings for search/query text
+- Training data embeddings use the `document` input type
+- Query/analysis embeddings use the `query` input type
 
-For example, `nomic-ai/modernbert-embed-base` requires:
-- `search_document` prefix for training data
-- `search_query` prefix for search queries
+Models like E5 and Nomic automatically receive `passage:`/`query:` or `search_document:`/`search_query:` prefixes respectively. BGE models automatically receive the asymmetric retrieval prefix for queries.
 
-Models with `Requires Prefix: false` will ignore any prefix settings.
+If you need to override the registry default for a specific model, set `ONNX_EMBEDDING_MODEL_DOCUMENT_PREFIX` or `ONNX_EMBEDDING_MODEL_QUERY_PREFIX` in `.env`.
 
 ### Training Data
 

@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file.
 
 
+## [Unreleased]
+### Updated
+- Upgraded `embedding-utils` from `^0.3.0` to `^0.4.0`
+- Prefixes and pooling are now auto-detected from `embedding-utils`'s built-in model registry. Removed `ONNX_EMBEDDING_MODEL_REQUIRES_PREFIX`. `ONNX_EMBEDDING_MODEL_DOCUMENT_PREFIX` and `ONNX_EMBEDDING_MODEL_QUERY_PREFIX` remain as optional overrides.
+- `generateEmbeddings()` now accepts `inputType: 'document' | 'query'` instead of manual `prefix` strings
+- Fixed incorrect model IDs in `.env`: `nomic-ai/modernbert-embed-base` → `nomic-ai/nomic-embed-text-v1.5`, `BAAI/bge-small-en-v1.5` → `Xenova/bge-small-en-v1.5`, `Xenova/all-distilroberta-v1` → `Xenova/distilroberta-base`
+- Expanded `.env` model registry from 6 to all 28 supported models with dimensions, max tokens, pooling method, and prefix info
+- Renamed `test/v030-features-test.js` to `test/embedding-utils-features-test.js` for version-agnostic naming
+
 ## [1.5.0] - 2026-04-06
 ### Added
 - HDBSCAN clustering algorithm as alternative to default agglomerative clustering (`--algorithm hdbscan` CLI flag, `CLUSTERING_ALGORITHM` env var)
