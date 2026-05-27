@@ -24,8 +24,8 @@ console.log(`Using embedding model: ${ONNX_EMBEDDING_MODEL} with precision: ${ON
 export const provider = createLocalProvider({
     model: ONNX_EMBEDDING_MODEL,
     precision: ONNX_EMBEDDING_MODEL_PRECISION,
-    documentPrefix: process.env.ONNX_EMBEDDING_MODEL_DOCUMENT_PREFIX || undefined,
-    queryPrefix: process.env.ONNX_EMBEDDING_MODEL_QUERY_PREFIX || undefined,
+    documentPrefix: process.env.ONNX_EMBEDDING_MODEL_DOCUMENT_PREFIX,
+    queryPrefix: process.env.ONNX_EMBEDDING_MODEL_QUERY_PREFIX,
     modelPath: process.env.LOCAL_MODEL_PATH,
     cacheDir: process.env.CACHE_DIR,
     allowRemoteModels: process.env.ALLOW_REMOTE_MODELS !== undefined ? toBoolean(process.env.ALLOW_REMOTE_MODELS) : true,
